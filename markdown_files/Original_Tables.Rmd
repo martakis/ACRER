@@ -1,0 +1,67 @@
+---
+title: "SQL Tables"
+output: slidy_presentation
+runtime: shiny
+css: complex-css.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r load dataset2.RData, echo=FALSE}
+tmpenv <- new.env()
+load("/Users/georgiosmartakis/Downloads/my_data/ACRER/data/dataset1.rda", envir = tmpenv)
+dataset1 <- tmpenv$dataset1
+```
+```{r shiny_app, echo=FALSE}
+library(shiny)
+
+shinyApp(shinyUI <- pageWithSidebar(
+  # Application title
+  headerPanel("Original Tables used for queries"),
+
+    sidebarPanel(
+    tags$style(HTML('body {font-family:"Times New Roman",Georgia,Serif; background-color:white}')),
+    tags$style(HTML('#textInput {font-family:"surabanglus",Georgia,Serif; background-color:lightblue}')),
+    textInput("caption", "Caption:", "Data Summary"),
+    selectInput("dataset1", "Choose a dataset:", 
+                choices = c("Table_2_RecrID_type_coordinates_prices","Table_3_RecrID_type_activity_pattern","Table_5_activities_definition_costs","Table_14_hgpID_groups_types","Table_16_hgpID_min_max_budgets","Table_7_zip_hgpID_budget","Table_9_zip_code_RecrID_distances","Table_8_hgpID_distance_costs","Table_10_hgpID_activity_budget","Time_segment_selected","zip_code_coordinates")),numericInput("obs", "Number of observations to view:", 50)
+),
+  mainPanel(
+    h1(textOutput("Caption")),
+    #    verbatimTextOutput(outputId = "summary", placeholder = TRUE),
+    tableOutput("view")
+  )
+),
+shinyServer <- function(input, output) {
+# By declaring datasetInput as a reactive expression we ensure that:
+#  1) It is only called when the inputs it depends on changes
+#  2) The computation and result are shared by all the callers (it
+#     only executes a single time)
+
+  datasetInput <- reactive({
+    switch(input$dataset1,
+          "Table_2_RecrID_type_coordinates_prices" = dataset1[[1]],
+          "Table_3_RecrID_type_activity_pattern" = dataset1[[2]],
+          "Table_5_activities_definition_costs" = dataset1[[3]],
+          "Table_14_hgpID_groups_types" = dataset1[[4]],
+          "Table_16_hgpID_min_max_budgets" = dataset1[[5]],
+          "Table_7_zip_hgpID_budget" = dataset1[[6]],
+          "Table_9_zip_code_RecrID_distances" = dataset1[[7]],
+          "Table_8_hgpID_distance_costs" = dataset1[[8]],
+          "Table_10_hgpID_activity_budget" = dataset1[[9]],
+          "Time_segment_selected" = dataset1[[10]],
+          "zip_code_coordinates" = dataset1[[11]])
+  })
+  
+  output$summary <- renderPrint({
+    dataset <- datasetInput()
+    summary(dataset1)
+  })
+  output$view <- renderTable({
+    head(datasetInput(), n = input$obs)
+  })
+}
+)

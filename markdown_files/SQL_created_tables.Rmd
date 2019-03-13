@@ -1,0 +1,74 @@
+---
+title: "SQL Tables"
+output: slidy_presentation
+runtime: shiny
+css: complex-css.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r load dataset2.RData, echo=FALSE}
+tmpenv <- new.env()
+load("dataset2.RData", envir = tmpenv)
+dataset2 <- tmpenv$dataset2
+```
+```{r shiny_app, echo=FALSE}
+library(shiny)
+library(shinythemes)
+
+
+shinyApp(shinyUI <- fluidPage(theme = shinytheme("superhero"),
+  
+  # Application title
+  titlePanel("Tables created by sql queries "),
+
+  sidebarLayout( 
+
+        sidebarPanel(
+               textInput("caption", "Caption:", "Data Summary"),
+               selectInput("dataset2", "Choose a dataset:",
+               choices = c("Final_table","data","ActInfo","TimeInfo")),
+               numericInput("obs", "Number of observations to view:", 1000),
+               width = 3
+        ),
+        mainPanel(
+            h3(textOutput("Caption")),
+            tableOutput("view")
+        ),
+      )
+   ),
+shinyServer <- function(input, output) {
+  
+  # By declaring datasetInput as a reactive expression we ensure that:
+  #
+  #  1) It is only called when the inputs it depends on changes
+  #  2) The computation and result are shared by all the callers (it
+  #     only executes a single time)
+  #
+  datasetInput <- reactive({
+    switch(input$dataset2,
+           "Final_table" = dataset2[[1]],
+           "data" = dataset2[[2]],
+           "ActInfo" = dataset2[[3]],
+           "TimeInfo" = dataset2[[4]])
+  })
+  
+  # The output$summary depends on the datasetInput reactive expression,
+  # so will be re-executed whenever datasetInput is invalidated
+  # (i.e. whenever the input$dataset changes)
+  output$summary <- renderPrint({
+    dataset <- datasetInput()
+    summary(dataset2)
+  })
+  # Define server logic required to summarize and view the selected dataset
+  # The output$view depends on both the databaseInput reactive expression
+  # and input$obs, so will be re-executed whenever input$dataset or
+  # input$obs is changed.
+  output$view <- renderTable({
+    head(datasetInput(), n = input$obs)
+  })
+}
+)

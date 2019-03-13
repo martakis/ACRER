@@ -1,0 +1,21 @@
+Package: ACRER
+Type: Package
+Title: Accessability for Recreation model developed in R
+Version: 0.9.1
+Date: 2018-11-22
+Authors@R: person("Georgios", "Martakis", email = "georgios.martakis@gmail.com",role = c("aut", "cre"))
+Description: This is a recreation model and simulates the number of persons per household and group types, the expected visiting duration as well as the number of visits from a zip code in a city to the destination areas around the city.
+Depends: R (>= 3.1)
+License: GPL-2
+Encoding: UTF-8
+LazyData: true
+Import:
+        DBI,devtools,doBy,DT,ggmap,ggplot2,gmodels,gsubfn,intpoint,kableExtra,knitr,mapview,miceadds,plotly,pracma,quadprog,RODBC,reshape2,rgdal,rJava,rmarkdown,rpivotTable,RSQLite,shiny,shinyjs,sp,XLConnect,xlsx,xlsxjars,WriteXLS
+RoxygenNote: 6.1.1
+Roxygen: list(markdown = TRUE)
+Suggests: dplyr, knitr, rmarkdown, testthat, sqldf
+VignetteBuilder: knitr,rmarkdown
+NeedsCompilation: no
+Packaged: 2019-03-05 10:58:00 UTC; georgiosmartakis
+Author: Georgios Martakis [aut, cre]
+Maintainer: Georgios Martakis <georgios.martakis@gmail.com>
