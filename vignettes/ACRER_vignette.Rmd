@@ -1,0 +1,915 @@
+---
+title: "Accessibility Model for Urban Recreation (ACRER) Vignette"
+author: "G. Martakis"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 2
+    number_sections: true
+    theme: united
+    highlight: tango
+  pdf_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+vignette: >
+  %\VignetteIndexEntry{Supplementary Materials}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  options(knitr.table.format = "html"),
+  options(knitr.kable.max_rows = 30)
+)
+```
+
+```{r echo=FALSE, error=FALSE}
+    find_extdata <- function(filename) {
+      candidates <- c(
+        system.file("extdata", filename, package = "ACRER"),
+        file.path("..", "extdata", filename),
+        file.path("..", "inst", "extdata", filename),
+        file.path(".", "extdata", filename),
+        file.path(".", "inst", "extdata", filename)
+      )
+      for (p in candidates) {
+        if (nchar(p) > 0 && file.exists(p)) return(p)
+      }
+      return("")
+    }
+    d2_path <- find_extdata("dataset2.RData")
+    if (nchar(d2_path) > 0 && file.exists(d2_path)) load(d2_path)
+    d3_path <- find_extdata("dataset3.RData")
+    if (nchar(d3_path) > 0 && file.exists(d3_path)) load(d3_path)
+```
+
+
+```{r echo=FALSE, error=FALSE}
+    library(knitr)
+    is_docx <- knitr::pandoc_to("docx")
+    is_html <- knitr::is_html_output()
+```
+
+------------------------------------------------------------------------
+
+\newpage
+
+# Introduction
+
+The name of this model **ACRER** (Accessibility for Recreation in R) was generated from the original model ACRE (Accessibility for Recreation) developed in 1995 by J.C.A.M. Bervaes, H.J.J. Kroon, G.F.P. Martakis and D.C. van der Werf (Bervaes et.al. 1995). This model was based on the Linear and Quadratic Programming optimization procedures. These optimization procedures were used for the simulation of one recreation group type to decide whether or not to go to a nature area by means of three available transport types: on foot, by bicycle or by car. The assumptions in the model relate to the need for recreational activities the frequencies of the available time classes (4 time segments), available means of transport per household type (fractions), and the so-called objective functions with which the Linear and the Quadratic Programming optimizes.
+
+The input and output of the model consisted of a relational database (*MS Access* for **Windows** operating systems) about the relationship between so-called **origins** (zip codes) and **destinations** (forests, nature reserves and parks). Within this matrix of origins and destinations the number of visits of group types from the corresponding household types, the used ones means of transport, the kilometers traveled, the realized travel time and residence time, the costs made to travel between origin and destination, and so on were estimated. The presentation of the input and the output could be done on cards using geographic information systems (**GIS**), such as Arc info or ArcView, or in the form of tables and charts. Depending on the issue, a relevant choice in the output. That decision was restricted by introducing several constraints such as the available time-budget in terms of duration classes and the frequency thereof, the available means of transport, the travel time versus residence time, minimum and maximum duration of stay, the available money etc. This model was programmed in the **C++** language in combination with the **MATLAB** *Optimization Toolbox* and the *MS Access* database.
+
+This model was applied in the Utrecht region and was used to the visit of the forest area Austerlitz. The model also was applied in 1998/1999 for estimating the expected changes in the recreational use of the Maasvlakte on behalf of **PMR** (Partners in Marketing Research). It was simulated the migration of people between the zip codes and the destination areas, the beaches. The assumption about the available time, the relation traveling's time/ period of staying in the beach etc. was adjusted during the beach visit (Bervaes *et. al.* 1998). Thereby was also a route planner used for cars and a short detour for cyclists. For the estimation of the available time and used vehicle was at 6 places in 6 Saturdays field research (surveys) carried out at beach crossings.
+
+This model after the year of 1999 was never used anymore because of several reasons. One very important reason was the absence of documentation of the model. Another reason was also the complex of the model. Besides that as mentioned before the presentation of the input and the output was done on cards using geographic information systems (**GIS**), such as Arc info or ArcView, or in the form of tables and charts.
+
+The author of the present package **ACRER**, attempts to present a simple version of the **ACRE** model by programming the most essential part of the model in the **R** language and by using as a help tool the **RStudio** which is free and open source data analysis software. The basic tables were used for the ACRE model were adjusted and corrected to the present time and the essential queries to provide the Final table are rewritten for the SQLite dabase available for all systems environment (Windows, Unix and Mac) The decision for using the **R** language was that **R** is an open source programming language that is excellent suited for data analysis and graphics. One can use R language to analyze data from many different data sources including external files or databases. It includes alternative methods of making maps without the required use of desktop geographic information system (**GIS**) software and by using the **R** which has many features that allow it to read **GIS** data and produce both static and interactive maps. Besides the abovementioned methods by using the **Shiny R package** one can provide interactive web apps straight from **R**.
+
+\newpage
+
+# Components of the main script (*Wageningen_SQLite_2023.R* ) for the **ACRER** package
+
+## Installation of the required packages (see also Appendix B).
+
+This is an essential part of the main script. This is done automatically and the user must not worry about the installed libraries (packages). It is possible after a long period some of the packages are archived, in this case the user must download the package from the archive (e.g. *intpoint.tar.gz* for the package **intpoint**) and this package was installed in the **System Library** (see *Environment* in **RStudio**).
+
+## The main script is written on the file: Wageningen_SQLite_2023.R of the ACRER package and is connected with 4 functions (scripts with the extension R):
+
+- **1.** combinations.R
+- **2.** Run_Queries.R
+- **3.** expected_visit_duration.R
+- **4.** crosstab_E.R
+  - **4.1** NGroup0.R
+  - **4.2** NGroup1.R
+  - **4.3** NGroup2.R
+  - **4.4** NGroup3.R
+  - **4.5** NGroup4.R
+
+The main script and the four functions together were used for the optimization of the small data set obtained by running SQL queries for the city of Wageningen.
+
+# Basic tables , SQL queries and databases
+
+This model is used for the optimization process of a small data set by using as origin the city of Wageningen with ***9*** zip codes areas (consisted of 4 digits) and ***33*** destination recreation areas in the surrounding of Wageningen. For Wageningen 9 four-digits zip codes were selected : from 6701 to 6709 (see also **zip_code_coordinates table (9)**, (see also **Appendix A**). For this model four digits zip codes were selected in place of the six-alphanumeric codes because the distances of the four digits zip codes are small in the small city of Wageningen when comparing with the big cities as for example Utrecht, Amsterdam or Rotterdam. Furthermore it is easier to check up the model with less amount of data when we used 4 digits zip codes. The 33 recreation areas were selected having as maximum distance from the zip codes in Wageningen about 37 km. (see **Table_9_zip_code_RecrID_distances (10)** (see also **Appendix A**). The distances were estimated by using the Google maps with three different transport types: on foot, bicycle and car. The zip codes maps and the recreation areas can be viewed by a pdf file format created by the main script of the model on the files: **zip code locations in Wageningen.pdf** and **Recreation areas around Wageningen.pdf** on the folder **pdf_compressed_results**.
+
+Each zip code area was consisted of ***52*** household types, group types combinations (***10*** household types with ***18*** group types combinations). The group types represents the holiday makers who come from a certain household type. These ***52*** combinations, with or without children, age of the adults and age of the children holiday makers including or not a dog etc.are represented on table: **Table14_hgpID_groups_types (13)** (see **Appendix A**)
+
+Every holiday maker has a certain maximum budget per year and a maximum budget per day for recreation (see also **Table_16_hgpID_min_max_budgets (14)** (see **Appendix A**).
+
+On the **Table_10_hgpID_activity_time (11)** (see **Appendix A**) were given the maximum and minimum number of times per activity as well as the minimum and maximum time to spend per activity (in minutes).
+
+On **Table_2_RecrID_type_coordinates (6)** (see **Appendix A**) we represented the type of recreation area and the entrance prices of sights (for adult, child and parking).
+
+On **Table_3_RecrID_type_activity_pattern (8)** (see **Appendix A**) were denoted the recreational activities
+
+On the **Table_5_activities_definiton-costs (5)** (see **Appendix A**) were represented the fixed costs per activity, the costs per hour per activity, the cost per person per activity and finally the costs per hour and per person per activity.
+
+The table **Time_segment_selected (12)** (see **Appendix A**) were represented the combinations of the recreation areas and the time segments (**4** time segments in this example) number of visits per time segment and the available time per time segment.
+
+All the abovementioned tables were on the database: **Wageningen_Basic_Tables_2023.sqlite** as well as for the Mac operation system and also for the Windows operation system. Those basic tables were required for the setting up the queries in order to obtain the **Final_table**. Those queries were run in a special R function: **Run_Queries.R**
+
+These ***14*** basic tables were required for setting up the queries and the tables: **zip_code_coordinates table (9)** together with the table **Table_2_RecrID_type_coordinates_prices (8)** were required for the map presentation on the files: **zip_code_Wageningen_map.pdf** and **Recreation_areas.pdf** for mapping the zip codes and recreation areas surrounding the Wageningen city.
+
+It is possible also for the user to use the abovementioned queries of the function **Run_Queries.R** in his own database in order to produce the **Final_table**.
+
+The script written on the file:**Wageningen_SQLite_2023.R** search automatically the required operation system (Mac or Windows) and the presence or absence of the table **Final_table** in the database.
+
+In order the user have a quick view of the observations of the **Basic tables** as well as of the **Final_table** this can be obtained by clicking the two files with the extension ***Rmd*** (Markdown files): **Basic_Tables\_.Rmd** and **SQL_created_tables.Rmd**
+
+After bringing one of them to the Source pane (left hand section, above the **Console** pane) in **RStudio** the user must click **Run** Presentation (under the bulk of the source files) and also by clicking the Contents and further by selecting **Basic Tables(2)** or **SQL Tables(2)** respectively. The **Final_table** was also produced in **xls**, **csv** and **html** format on the Files (right hand section of RStudio).
+
+From the **Final_table** we obtained the **data** table which consists of 1092 records and 4 variables: RecrID, activity_pattern, transport_type_ID and Time_segment (see in the folder **Wageningen_Table_Procedures_excel** : **Procedures_ACRER**.xlsx. (crosstab_procedure **(1)** section)).
+
+Only the 3 variables: ***RecrID***, ***activity pattern*** and ***Time_segment*** were played a role in the following description of the optimization process. Furthermore from the **Final_table** and by using SQL queries the user can obtain the tables *Table 1: ActInfo* **(2)** and *Table 2:TimeInfo* **(3)**
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+   library(knitr)
+   library(flextable)
+   library(kableExtra)
+   ActInfo <- data.frame(ActInfo)
+   if(is_docx){
+     ft <- flextable(head(ActInfo, n = 10))
+     ft <- autofit(ft)
+     ft <- add_header_lines(ft, values = "Table 1: ActInfo")
+     ft
+     } else if(is_html){ x_html <- kable(ActInfo, row.names = FALSE, 
+    col.names = c('activity_pattern','maximum_number_of_times_per_activity'), format = "html", digits = 2, 
+    align = 'c',caption = 'Table 1: ActInfo')
+    kable_classic_2(x_html, full_width = F,  position = "center", fixed_thead = T)} else {
+    x_pdf <- kable(ActInfo, format = "latex",align = 'c', digits = 2, caption = 'ActInfo')
+    kable_styling(x_pdf, position = "center",font_size = 10)}
+```
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+   library(knitr)
+   library(flextable)
+   library(kableExtra)
+   TimeInfo <- data.frame(TimeInfo)
+   if (is_docx) {
+   ft <- flextable(head(TimeInfo, n = 4)) 
+   ft <- autofit(ft,add_w = 0.5) 
+   ft <- add_header(x = ft, Time_segment = "Table 2:TimeInfo", top = TRUE)
+   ft <- height_all(ft,height = 0.7, part = 'all')
+   ft
+   } else if(is_html) { 
+   x_html <- kable(file = TimeInfo, head(TimeInfo), format = "html",align = 'c',caption = "Table 2: TimeInfo")
+   kable_classic_2(x_html, full_width = F, position = "center")
+   } else {x_pdf <- kable(TimeInfo, format = "latex",caption = "TimeInfo")
+   kable_styling(x_pdf, position = "center",font_size = 10)}
+```
+
+\newpage
+
+# Optimization process
+
+The data set: data (**1092** records) was defined by the combinations of the variables: ***RecrID***, ***activity_pattern***, ***transport_type_ID*** and ***Time_segment***.
+
+The **transport_type_ID** variable is not important in the analysis. In the analysis only the unique combinations of the variables: **RecrID, activity_pattern and Time_segment** were needed.
+
+This was realized by using: the ***group_by***(RecrID, activity_pattern,Time_segment) function which required the R library **dplyr**.
+
+The data set was first converted to ***data frame*** (a list of vectors of equal length). Then we got the data frame named **cdata** with ***515*** unique combinations of the abovementioned variables (see folder **Wageningen_Table_Procedures_excel** : **Procedures_ACRER**.xlsx, Excel ***sheet***: **crosstab_procedures**).
+
+The function **crosstab(Rmatrix, Cmatrix, C1)** generated the groups with the same activities in the same time segment per recreation area. The first argument of the function was the **Rmatrix**, matrix of one column: the ***RecrID*** variable (recreation area ID), the second argument was the **Cmatrix**, matrix of two columns: the ***activity_pattern*** and ***Time_segment*** and the third argument was the **C1** vector which was an **empty** vector('numeric').
+
+The function **crosstab(Rmatrix, Cmatrix, C1)** constructed a matrix of ***33*** rows (the number of rows of RecrID) and ***34*** columns, the requested combinations of activity patterns and time segments **(5)**. The sum per rows of this matrix was computed and sorted in descending order. Thus we had one row with the sum **28** (28 presences of RcrID number 3 on the unique combinations of activity_patterns and time_segments (this presence doesn't exist on combinations **(activity pattern - time segment)**: 3-3, 3-4, 8-3, 8-4 10-3 and 10-4. and is the group number **4** (this is only a group number with no other indications). The second was the group number **6** which consists of three RecrID: 2, 4 and 5 and 24 combinations of the activity_patterns and time_segments etc. On this base was created an extra variable **groupRecr_at** on the **cdata (515 x 5)** frame **(6)**.
+
+The data frame **data1 (515 x 3) = cdata(2,3,5 columns)** (see the folder **Wageningen_Table_Procedures_excel**: **Procedures_ACRER**.xlsx. (1)) was constructed by using the columns of the **cdata** namely the RecrID, activity_pattern and time_segment.
+
+After that the data frame **data2 (8) (133 x 5)** was reduced (total: 133 records) by using the function *group_by* of the data frame **data1** and the **tally** function in order to get an extra column namely the **number of locations (counts)** and all columns were sorted in ascending order with the use of the function **order**.
+
+The crosstab procedure was used again but the first argument in this case the **Rmatrix** is a matrix of *two* columns: **groupsRecr_at** (generated from the previous uses of the crosstab procedure) and **activity_pattern** (48 x 4). The **Cmatrix** consisted of *one* column namely the **time_segment** variable **(9)**. Hereafter we generated a new variable **groupsRecr_act_ts** which denoted the presence of the **groupsRecr_at** and **activity_pattern** on the *4* **time segments** pattern.
+
+Again also for this procedure we used the sum of the rows (in this case max: ***4***) in order to get the various groups of the the extra variable: **groupsRecr_act_ts (10)**.
+
+The matrix **Data3b** summarize the above mentioned variables: groupsRect_at, activity_pattern, groupsRecr_act_ts and number_of_locations (size:48 x 4) **(11)**.
+
+On the matrix **data7** we have the three groups of the variable groupsRecr_act_ts namely **4, 1, 37** with the presence/absence on the four time segment **(12)**:
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+   library(knitr)
+   library(rmarkdown)
+   library(kableExtra)
+   library(flextable)
+   data7 <- data.frame(data7)
+   if (is_docx) {
+   ft0 <- flextable(head(data7)) 
+   ft0 <- autofit(ft0) 
+   ft0 <- add_header_row(x = ft0, top = TRUE, values = "Table 3: data7", colwidths = 6) 
+   ft0
+   } else if(is_html)  { 
+   x_html <- kable(file = data7, head(data7), format = "html",align = 'c',caption = "Table 3: data7",col.names = c('rows','groupsRecr_act_ts','col1','col2','col3','col4'))
+   kable_classic_2(x_html, full_width = F, position = "center")  
+   } else {x_pdf <- kable(data7, format = "latex",caption = "Table 3: data7")
+   kable_styling(x_pdf, position = "center",font_size = 10)}
+```
+
+## Construction of the design matrices
+
+With the use of the model.matrix function from the R stats package and by inserting -1 as option in the formula the intercept was suppressed: for the design2 matrix (size: 10 x 48) first we compute the levels of the activity_pattern (10 levels) in the variable factivity_pattern and then we use the function:
+
+design2 \<- model.matrix( \~ factivity_pattern - 1) **(13)** and further we took the transpose of this matrix (see the folder **Wageningen_Table_Procedures_excel** : **Procedures_ACRER**.xlsx, Excel ***sheet***: timeMax **.**
+
+**On the same way for the design3 matrix** (14)\*\*:
+
+design3 \<- model.matrix( \~ fgroups_Recr_act_ts -1) **(14)**
+
+## Procedure for the construction of the vector timeMax
+
+The vector **timeMax** together with the design matrices: design2 and **design3** were essential for the coefficients of the **linear constrains matrix (lin_mat (29 x 48)**. In order to construct the vector timeMax we used a hulp matrix **c3 (size: 9 x 3)** by using the combinations function **(15)** and by selecting only the matrices with the size 9 x 3 where the sum of the rows are higher than 0. The function combinations was running in a while loop of 5000 times and producing: 5000 of this type of matrices (see Table 4):
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+   library(knitr)
+   library(kableExtra)
+   library(flextable)
+   library(rmarkdown)
+   c3 <- data.frame(c3)
+   if (is_docx) {
+   ft <- flextable(head(c3, n = 9)) 
+   ft <- autofit(ft) 
+   ft <- add_header_row(x = ft, top = TRUE, values = "Table 4: c3 size(9x3)", colwidths = 4) 
+   ft
+   } else if(is_html) { 
+   y_html <- kable(c3,row.names = FALSE,col.names = c('rows','col1','col2','col3'), format = "html", align =  'c', caption = "Table 4: c3 size(9x3)")
+   kable_classic_2(y_html, full_width = F,position = "center")     
+   } else {x_pdf <- kable(c3, format = "latex",caption = "c3 size(9x3)")
+   kable_styling(x_pdf, position = "center",font_size = 10, fixed_thead = TRUE)}   
+```
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+   library(knitr)
+   library(kableExtra)
+   library(flextable)
+   p <- data.frame(p)
+   if (is_docx) {
+   ft1 <- flextable(head(p, n = 9)) 
+   ft1 <- autofit(ft1) 
+   ft1 <- add_header_row(x = ft1, top = TRUE, values = "Table 5: p (size: 9x4)", colwidths = 5) 
+   ft1
+   } else if(is_html) { 
+   x_html <- kable(p, row.names = FALSE,col.names = c('rows','col1','col2','col3','col4'),format = "html",align = 'c',caption = "Table 5: p (size: 9x4)")
+   kable_classic_2(x_html, full_width = F, position = "center")
+   } else {x_pdf <- kable(p, format = "latex",caption = "Table 5: p (size: 9x4)")
+   kable_styling(x_pdf, position = "center",font_size = 10)}
+```
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+   library(knitr)
+   library(kableExtra)
+   library(flextable)
+   NumberAvail <- data.frame(NumberAvail)
+   if (is_docx) {
+   ft2 <- flextable(head(NumberAvail)) 
+   ft2 <- autofit(ft2) 
+   ft2 <- add_header_row(x = ft2,top = TRUE, values = "Table 6: NumberAvail",colwidths = 2) 
+   ft2
+   } else if(is_html) { 
+   x_html <- kable(NumberAvail,row.names = FALSE,col.names = c('Time segment','NumberAvail'),align = 'c',caption = "Table 6:NumberAvail")
+   kable_classic_2(x_html, full_width = F, position = "center")
+   } else {x_pdf <- kable(NumberAvail, format = "latex",caption = "NumberAvail")
+   kable_styling(x_pdf, position = "center",font_size = 10)}
+```
+
+\newpage
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+   library(knitr)
+   library(kableExtra)
+   library(flextable)
+   timeMax <- data.frame(timeMax)
+   if (is_docx) {
+   ft3 <- flextable(head(timeMax)) 
+   ft3 <- autofit(ft3, part = 'all') 
+   ft3 <- add_header_row(x = ft3,top = TRUE, values = "Table7:timeMax",colwidths = 2) 
+   ft3
+   } else if(is_html) { 
+   x_html <- kable(timeMax, row.names = FALSE,col.names = c('rows','timeMax'),align = 'c',caption = "Table 7:timeMax")
+   kable_classic_2(x_html, full_width = F, position = "center")
+   } else {x_pdf <- kable(timeMax, format = "latex",caption = "timeMax")
+   kable_styling(x_pdf, position = "center",font_size = 10)}   
+```
+
+By multiplying the above mentioned matrix **c3 (9 x 3)** (see Table 4) and the matrix **data7 (3 x 4)** we got the matrix **p ( 9 x 4)** (16) (see Table 5). For every cell of the p matrix we obtain the presence/absence of the cell by setting **p = p \> 0 (9 x 4)**. By also multiplying the above matrix **p (9 x 4)** with the vector **Time_avail (4 x 1)** (see Table 6) we got the vector **timeMax (9 x 1)** (16) (see Table 7).
+
+We obtained thus 5000 c3 matrices (size: 9 x 4) and by using the above mentioned multiplication procedure we obtained also 5000 vectors timeMax. We computed the sum of each vector timeMax and then by sorting this sum in increasing order we selected the first vector timeMax for the corresponding c3 matrix. Thus the vector timeMax is one of the vectors with the **-minimum\_** sum
+
+The quadprog package used for solving the Quadratic optimization Problem. Quadratic programming is the problem of finding a vector x that minimizes a quadratic function, possibly subject to linear constraints:
+
+\begin{align}
+  \underset x{\operatorname{min}}{(-dvec^T * x}+{\frac 1 2}{(x^T * Dmat * x))}\\
+\end{align}
+
+with the constrains:
+
+\begin{equation}
+{Amat^T * x} - {bvec \ge\ 0}
+\end{equation}
+
+where Dmat is the Hessian matrix, dvec is vector appearing in the quadratic function to be minimized,the symbol T denotes the transpose of the vector, Amat is a matrix defining the constraints under which we want to minimize the quadratic function and T denotes the transpose of the matrix, bvec is a vector holding the values of linear constraints (defaults to zero) This routine implements the dual method described by Goldfarb and Idnani (1982, 1983). The user can see more details about the quadprog package by reading the abovementioned article. In **Appendix C** a small example for the uses of the quadprog package described
+
+------------------------------------------------------------------------
+
+## Coefficients of the linear constrains
+
+The lin_cond_max vector (size: 29 x 1) consists of three vectors: timeMax, ActMax and ZActMax which is the vector 0\*ActMax **(17)**.
+
+vector: **lin_cond_max** [timeMax; ActMax; ZActMax = 0 \* ActMax]
+
+\newpage
+
+The matrix Amat **(18)** is a matrix defining the constrains under which we want to minimize the quadratic function: Amat \<- lin_mat \<- matrix [c3_design3 (size: 9 x 48)],
+
+design2 (size:10 x 48),
+
+-design2 (size:10 x 48)]
+
+
+## Construction of the Hessian matrix
+
+**1.** The number of locations had been spread out as much as possible per groupsRecr_at (**these were the groups with the same activities on the same time segments per destination area**), activity_pattern and groupsRecr_act_ts (**these were the groups with the same time segments per groupsRecr_at and activities**).
+
+We used the vector loc (size: 48 x 1) which is the number_of_locations column of the data3b matrix (size: 48 x 1) (11). By using the the reciprocal of the number of locations per groupsRecr_at, activity_pattern and groupsRecr_act_ts (11) we generated the diagonal matrix **m1** (48 x 48) **(19)** (see the folder **Wageningen_Table_Procedures_excel** : **Procedures_ACRER**.xlsx, Excel ***sheet***: **quadprog** ).
+
+**2.** The number of locations had been spread out as much as possible per groupsRecr_at (these were the groups with the same activities in the same time segments per destination area)
+
+First we had constructed the matrix **design1 (10 x 48)** by using the function: the **model.matrix**( \~ fgroupsRecr_at - 1) further by by taking the transpose of this matrix and by doing the **summation per row we got the number of groupsRecr_at per level** **groupsRecr_at** **(20)**. Then by dividing design1 with the number of groupsRecr_at per level groupsRecr_at we got the final **design1 matrix (10 x 48)** **(21)**. By multiplying the final **design1 (10 x 48)** matrix with the number_of_locations column (the 4th column) of the matrix **data3b (48 x 4)** we got **the number of locations per level groupsRecr_at denoted** **Li** **(22)**. The matrix **m3 (48 x 48)** **(23)** of the Hessian matrix was **the proportion of the number of locations per groupsRecr_at** (see the folder **Wageningen_Table_Procedures_excel**: **Procedures_ACRER**.xlsx, Excel ***sheet***: **quadprog** )
+
+**3.** Construction of the matrix **m5** (the proportions of maximum number of times per activity pattern)
+
+From the matrix ActMax (size: 10 x 2) **(24)** where the first column is the activity patern levels (10) and the second column is the maximum number of times per activity. The sum of the second column sumi is the maximum number of visits for the 10 activities. First we generated the diagonal matrix dia5 (10 x 10) where this matrix has as diagonal elements the fraction:
+
+\begin{equation}
+\frac
+ 1{sum_i^2}\, (25)
+\end{equation}
+
+From the Table l1 the sum of the second column sumi = 442.49 -\>
+
+\begin{equation}
+\frac
+ 1{sum_i^2}\, = 0.0000051
+\end{equation}
+
+By pre- and postmultiplying the diagonal matrix dia5 with the design2 matrix we obtained the reciprocal of the square of the maximum visits in the matrix m5 (size: 48 x 48) (26) ((see in **Wageningen_Table_Procedures_excel** folder: **Procedures_ACRER**.xlsx. (3)):
+
+\begin{equation}m_5  = design2^T * diag(\frac
+ 1{sum_i^2}) *design2\end{equation}
+
+By dividing the number of visits per activitity with the reciprocal of the square of the maximum visits we obtain the proportions of maximum visits per activity pattern and by transposing the abovementioned column we obtained the vector g11 (size: 1 x 10) (27).
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+   library(knitr)
+   library(kableExtra)
+   library(flextable)
+   lin_cond_max <- data.frame(lin_cond_max)
+   if (is_docx) {
+   ft4 <- flextable(head(lin_cond_max, n = 29)) 
+   ft4 <- width(ft4, width = 1) 
+   ft4 <- add_header_row(x = ft4, top = TRUE, values = "Table 8: lin_cond_max", colwidths = 2) 
+   ft4
+    } else if(is_html)  { 
+   y_html <- kable(lin_cond_max,row.names = FALSE,col.names = c('rows','lin_cond_max'), format = "html", align = 'c', caption = "Table 8: lin_cond_max")
+   kable_classic_2(y_html, full_width = F,position = "center")
+   } else {x_pdf <- kable(lin_cond_max, format = "latex", align = 'c', caption = 'lin')
+   kable_styling(x_pdf, position = "center",font_size = 10)}
+```
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+   library(knitr)
+   library(kableExtra)
+   library(flextable)
+   Table_l1 <- data.frame(Table_l1)
+   if (is_docx)   {
+   ft6 <- flextable(head(Table_l1,cwidth = 4)) 
+   ft6 <- autofit(ft6) 
+   ft6 <- add_header_row(x = ft6,   top = TRUE, values = "Table :Tablell1", colwidths = 4) 
+   } else if(is_html) { 
+   x_html <- kable(Table_l1, row.names = FALSE,col.names = c('activity_pattern','ActMax','gl1','l1'), format="html",align = 'c',caption = "Table 9:Tablel1")
+   kable_classic_2(x_html, full_width = F, position = "center")
+   } else {x_pdf <- kable(Table_l1, format = "latex",caption = "NumberAvail")
+   kable_styling(x_pdf, position = "center",font_size = 10)}
+```
+
+Furthermore we constructed the matrix design0 as matrix of ones, thus it is a matrix of one column of ones (size: 48 x 1). The m6 matrix was computed by multiplying the matrix design0 by g11 and the result by multiplying with the matrix ActMax and the transpose of the matrix design0 (28): \begin{equation}
+{m_6  = design0^ T*g11*ActMax*design2}
+\end{equation} Finaly the matrix m7 is the product of design0 and the transpose of the design0 (29). \begin{equation}
+{m_7  = design0*design0^T}
+\end{equation}
+
+The Hessian matrix (30) was computed as the sum of those matrices:
+
+\begin{equation}
+{Hessian  = \frac
+ 1{2}
+*(m1+m3+m5+m6+m7)}
+\end{equation}
+
+For the Quadratic Programming Problem: Dmat = Hessian
+
+We computed the vector l1 by taking twice the transpose of the vector \begin{equation}
+\frac
+ {ActMax}{sum_i^2}\end{equation}
+
+and multiplying by the matrix design2
+
+\begin{equation}
+l1 = 2 * (\frac
+ {ActMax}{sum_i^2})^T * design2\, (31)
+\end{equation}
+
+which had the size: (1 x 10) x (10 x 48) = 1 x 48
+
+Furthermore we computed the vector l2 by taking twice the product of sumMi which is the maximum number of visits for the 10 activities by multiplying with the matrix design0:
+
+\begin{equation}
+l2 = -2 * sumi* design0\ (32)
+ \end{equation}
+
+The vector dvec appearing in the quadratic function is computed from the two vectors namely l1 and l2 (32): \begin{equation}
+ dvec =  (l1^T * \frac {l2}{2})
+ \end{equation} The vector bvec (33) was equal with the coefficients of the linear constaints (see 1. coefficients of the linear constrains)
+
+The matrix Amat (35) and the vector bvec waren extended with the diagonal matrix Adiag of -1 (size: 48 x 48) (34) and bvec0 a vector of 0 respectively.The new size of Amat is 77 x 48. By taking the transpose of this matrix with a negative sign we introduced this matrix on the solve.QP function.The vector bvec which was extended with the vector bvec0 a vector of 0 as mentioned before with the new size is 77 x 1. We took the negative sign of bvec. We introduced both matrix and vector on the solve.QP and we obtained the qp\$solution n = number of visits: qp \<- solve.QP(Dmat = Dmat,dvec = dvec,Amat = Amat,bvec = bvec) (36). Only the first 30 numbers are shown on the table below:
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+   library(knitr)
+   library(kableExtra)
+   library(flextable)
+   qp_solution <- data.frame(qp_solution)
+   if (is_docx) {
+   ft7 <- flextable(head(qp_solution,cwidth = 4)) 
+   ft7 <- autofit(ft7) 
+   ft7 <- add_header_row(x = ft7,   top = TRUE, values = "Table 10:qpsolution", colwidths = 2) 
+    } else if(is_html)  { 
+   x_html <- kable(qp_solution, row.names = FALSE,col.names = c('rows','qpsolution'), format="html",align = 'c',caption = "Table 10:qpsolution")
+   kable_classic_2(x_html, full_width = F, position = "center")
+   } else {x_pdf <- kable(qp_solution, format = "latex",caption = "qpsolution")
+   kable_styling(x_pdf, position = "center",font_size = 10)}
+```
+
+## Linear programming
+
+The linear programming was based on the groups with the same time segments per groupsRecr_at and activities pattern which already was named: groupsRecr_act_ts (see page 5). On this base we have constructed a matrix amatrix with the size: 133 x 3 (37). The first column named units (see file: linprog.xls or the file Wag_documentation_English.html) and was the factor fa with 48 levels and the second column was the factor fb (the time_segment) with 4 levels.We constructed the matrices z11 as the model.matrix of fa (38): z11 = model.matrix(\~fa - 1) and by taking the transpose z_11\^T (size: 48 x 133) and z12 as the model matrix of fb (39): z12 = model.matrix(\~fb - 1) and by also taking the transpose z_12\^T. (size: 4 x 133). The matrix M = linm (40) was the matrix z11 extended by the matrix z12 (size: 48 + 4 = 52 x 133).The vector corresponding to the right hand side constrains (with \> =) bM = bvecL (41) was generated by using the solution of qp (quadratic programming) (size: 48 x 1) and the vector TimeAvail (time available) per time_segment (size: 4 x 1) ((see in **Wageningen_Table_Procedures_excel** folder: **Procedures_ACRER**.xlsx. sheet: **linprog.xls (4)**). Only the first 30 numbers of the table below are shown.
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+   library(knitr)
+   library(kableExtra)
+   library(flextable)
+   linear_solution <- data.frame(linear_solution)
+   if (is_docx) {
+   ft8 <- flextable(head(linear_solution,cwidth = 4)) 
+   ft8 <- autofit(ft8) 
+   ft8 <- add_header_row(x = ft8,   top = TRUE, values = "Table 11:linearsolution", colwidths = 4) 
+    } else if(is_html)  { 
+   x_html <- kable(linear_solution, row.names = FALSE,col.names = c('rows','units','time_segment','linear_solution'), format = "html",align = 'c',caption = "Table 11:linearsolution")
+   kable_classic_2(x_html, full_width = F, position = "center")
+   } else {x_pdf <- kable(linear_solution, format = "latex",caption = "linearsolution")
+   kable_styling(x_pdf, position = "center",font_size = 10)}
+```
+
+------------------------------------------------------------------------
+
+The vector corresponding to the coefficients of the objective function is a vector cvec of ones (size:133 x 1) A linear programming problem can be expressed in the following form:
+
+\begin{equation}
+min({cvec^T * x}) 
+\end{equation} such that \begin{equation}
+{Mx \ge\ bM}
+\end{equation}
+
+The results of the linear programming which were the number of visits saved on the vector sol5 (size: 133 x 1) (42). This vector was further used in the crosstab function in order to get the cross table with rows the units (48 levels) and the columns the levels of time segments (4 levels) and every cell of the table corresponds with the number of visits per time segment (43). Finaly we generated different tables: By using the function melt from the R package reshape2 and we got the table result (size: 192 x 6) having as columns: units, groupsRecr_at, activity_pattern, groupsRecr_act_ts, nr of locations, Time_segment and number_of_visits (44). Table result3 represented the abovementioned variables and the number of visits per location (size: 87 x 7) (45). Furthermore by merging the table result3 (size:87 x 7) with the table cdata (size:515 x 4) we got the table result1 (46) with the extra variable number of transportations and the number of visits per transpostation.
+
+## Computations for the expected visit duration
+
+The next step was to estimate the expected visit duration per transportID, activity_pattern and time_segment. We obtained from the Final_table the following computed variables:
+
+**1.** transport_time_total: *wait_time_per_full_travel + transport_travel_time* (in min)
+
+**2.** percent: *(2 \* transport_travel_time_total) \* ((100 - maximum_total_time)/(maximum_total_time)* (in min)
+
+**3.** maxduraton: *If to_spend_minimum_time_per_activity \>= percent then maxduraton = to_spend_minimum_time_per_activity else maxduraton = percent* (in min)
+
+**4.** mintime: *(2 \* transport_time_total) + maxduration* (in min)
+
+**5.** fixed_costs: *activities_costs + travel_costs* (in euro's)
+
+**6.** minute_time_costs: *mintime \* (activities_costs_per_hour/60)* (unit: in euro's)
+
+**7.** activities_costs_per_hour: *costs_per_hour_per_activity + (number_of_persons \* costs_per_hour_and_person_per_activity)* (unit: in euro's/hour)
+
+**8.** total_activities_costs = *personal_costs.* (unit:in euro's) These were the fixed_costs and minute_time_costs per activity (unit: euro's)
+
+**9.** to_spend_minimum_time_per_activity and to_spend_maximum_time_per_activity denoted als *min_duration_abs* and *max_duration_abs* (unit: min).
+
+**10.** *Time_available_per_time_segment* (unit: min) and *transport_travel_time_total* (unit: min).
+
+From them we computed the available_time_for_activity = *Time_available_per_time_segment - ( 2 \* transport_travel_time_total)* (unit: min).
+
+**11.** We computed the costs_per_min = *personal_costs/max_duration_abs* (unit: euro's/min).
+
+**12.** Form the Final_table we obtained the *maximum_budget_per_day* (unit: euro's for 24 h) and *travel_costs* (unit: euro's) per recreational person.
+
+**13.** We created a vector named: *maximum_duration_as_a_result_of_costs*
+
+```         
+IF personal_costs == 0 THEN     maximum_duration_as_a_result_of_costs =     available_time_for_activity ELSE    maximum_duration_as_a_result_of_costs = (60 *   (maximum_budget_per_day - travel_costs))/personal_costs         
+(in min)
+```
+
+Furthermore we generated the vector step1:
+
+**14.** step1 \<- *min(max_duration_abs, maximum_duration_as_a_result_of_costs)* (unit: min).
+
+The vector minimum_duration:
+
+**15.** minimum_duration \<- *max(maxduration, min_duration_abs)* (unit: min)
+
+and the vector maximum_duration:
+
+**16.** maximum_duration \<- *min(available_time_for_activity,step1)* (unit: min)
+
+**17.** min_duration_abs: *to_spend_minimum_time_per_activity* and
+
+**18.** max_duration_abs: *to_spend_maximum_time_per_activity*
+
+We estimated the expected_visit_duration by providing as arguments the vectors: *min_duration_abs, max_duration_abs, minimum_duration and maximum_duration* to the function: **expected_visit_duration.R**
+
+**19.** expected_visit_duration: \*\_ expected_visit_duration(min_duration_abs, max_duration_abs, minimum_duration,maximum_duration)\_\*
+
+We estimated the **20.** expected_costs: *travel_costs + (cost_per_min \* the_expected_visiting_duration)*
+
+Finaly we estimated also the
+
+**21.** remnant_time: *available_time_for_activity - the_expected_visiting_duration*
+
+------------------------------------------------------------------------
+
+# Results
+
+The output results of the simulation are depended on the research questions about the model. For example a reasonable question is the results of the simulation producing the sum of the number of persons and the expected visiting duration to a certain recreation area from various zip codes.
+
+In the Wageningen simulation project we had only 33 recreation areas and 9 zip codes. Therefore we use our simulation results for the computation of the number of persons and the expected visiting duration for all all recreation areas per zip code.For this model the simulation results were summarized in the form of pivot tables. For the computation of the pivot tables in order to obtain the percentages of persons visited a certain recreation area per zip code we have used the R package pivottabler. The following pivot tables were produced:
+1. Pivot tables as data frames for the number of visits and expected visiting including the variables: distance, total fuel cost, total activities cost  duration (pivot_df, pivot.csv, pivot.rds)
+2. percent of the number of visits per Grand total  (pivot1_df, pivot1.csv, pivot1.rds)
+3. percent of the expected_visiting_duration per Grand total (pivot2_df, pivot2.csv, pivot2.rds)
+4.  percent of the row total number of visits per zip code (pivot3_df, pivot3.csv, pivot3.rds)
+5. percent of the row total number of visits per recreation area (pivot4_df, pivot4.csv, pivot4.rds)
+6. percent of the row expected visiting duration per zip code (pivot5_df, pivot5.csv, pivot5.rds)
+7. percent of the row total expected visiting duration per recreation area (pivot6_df, pivot6.csv, pivot6.rds)
+With the help of the 3 first tables it is possible to realize which recreation areas have the highest number of visits and expected visiting duration:
+For the number of visits the 4 following recration areas got the highest number of visits:
+1. Arboretrum Belmonde (17.37%)
+2. Arboretrum De Dreijen (16.96%)
+3. Uitwarden Wageningen (16.35%)
+4. Wageningen Berg and Bergpad (15.96%)
+For the expected visiting duration the 4 following recration areas got the highest number of visits:
+1. Wageningen Berg and Bergpad (7.60%)
+2. Arboretrum Belmonde (6.80%)
+3. Arboretrum De Dreijen (6.70%)
+4. Uitwarden Wageningen (6.56%)
+A reasonable question is the number of persons and the expected visiting duration for the two zoos: Burgers zoo and Ouwehands Dierenpark Rhenen
+Here we used the 3 first pivot tables:
+The means of the number of visits for all zip codes:
+Burgers zoo: 0.32
+Ouwehands Dierenpark Rhenen: 0.03
+The percentages for all zip codes are:
+Burgers zoo: 0.50%
+Ouwehands Dierenpark Rhenen: 0.22%
+
+and for the expected visiting duration:
+Burgers zoo: 77.86
+Ouwehands Dierenpark Rhenen: 79.45
+The percentages for all zip codes are:
+Burgers zoo: 0.30%
+Ouwehands Dierenpark Rhenen: 1.62%
+From the above results is aparent that the Burgers zoo get more number of persons than the Ouwehands Dierenpark Rhenen but the expected visiting duration is less than the Ouwehands Dierenpark Rhenen. These results are based on the outcome of the model ACRER for the year 2023 and not based on the registered visits in both zoos.
+
+
+
+------------------------------------------------------------------------
+
+# Limitations and conclusions
+
+As mentioned in the introduction the model ACRER is a simple description of the original model ACRE. The results of the expected visiting duration are dependent on the constrains of the original tables. These constrains must be calibrated by surveys of the inhabitants of the origin city in order to find out their approximate budget per year and particularly about their budget per day.
+The prices for the tickets for certain recreation areas in our model were computed from single tickets and not from yearly subscriptions.
+The model was based on three transport mediums (on foot, by bicycle and by car) for simplicity. Extra transportation mediums will require their trasport time and their prices.
+
+For the model we needed the following tables:
+
+**1.** Final_table
+
+**2.** data
+
+**3.** ActInfo
+
+**4.** TimeInfo and
+
+**5.** Basic_TableB
+
+These tables were obtained by using the **Run_Queries**.R function. As we described before (see **3.** Basic tables , SQL queries and databases) those 12 tables were essential to run the queries in order to obtain the **5** abovementioned tables.
+
+It is important therefore if the user provides a new data set from a new origin city and also new surrounding recreational areas that the name of the database must be changed and also the scripts of the present model must be changed: **Wageningen_Basic_Tables**.sqlite with the code: *WD \<- getwd()* (where WD is the directory situated the model ACRER *WD2 \<- paste(WD, "/Wageningen_Basic_Tables.sqlite", sep = "")* *conn \<- dbConnect(RSQLite::SQLite(), WD2)* (where conn is the connection to the database).
+
+Furthermore if the user provides another type of database eg. **"MySQL"** then in this case the model requires **ODBC** library for Windows or the **UnixODBC** library for the **Unix/MacOS** in order to get the required tables. (see: <https://solutions.posit.co/connections/db/best-practices/drivers/>). Here in our model we used an *sqlite* database for simplicity.
+
+For a new data set the basic tables must have the same column names and the same number of columns in order to compute those sql queries.
+
+------------------------------------------------------------------------
+
+\newpage
+
+# References
+
+*Bervaes, J.C.A.M., H.J.J. Kroon, G.F.P. Martakis, & D.C.van der Werf 1996.* Een model voor het gebruik van de groene ruimte in standslandschappen(Fase I). IBN-rapport 246. DLO-Instituut voor Bos- en Natuuronderzoek, Wageningen. 100 p. *Bervaes, J.C.A.M., D.C.van der Werf, G.F.P. Martakis, A. Griffioen (1999)* Strandrecreatie op de landaanwinning en de stranden in de omgeving
+
+*Vanderbei, R.J., Meketon, M.S. and Freedman, B.A. (1986)* A modification of Karmarkar's linear programming algorithm. Algorithmica 1, pp. 395-407.
+
+*D. Goldfarb and A. Idnani (1983).* A numerically stable dual method for solving strictly convex quadratic programs. Mathematical Programming, 27, 1 - 33.
+
+------------------------------------------------------------------------
+
+# Software
+
+R R 4.6.1 GUI 1.83 High Sierra build
+
+*RStudio* Version 2026.08.2+200 (2026.08.2+200)
+
+\*\_OSX Golden Gate 27
+
+------------------------------------------------------------------------
+
+\newpage
+
+# Appendix A
+
+**Basic Tables** (see \*\*Basic_Tables\_\_excel\*\* folder)
+
+**1.** hgpID_household_group_types (52 records) 10 househod_types and 18 group_types
+
+Field Names: hpgID,household_types,group_types,household_types_definition,group_types_definition,number_of_adults,age_of_adults,number_of_children, dog,number_of_groups, number_of_persons,age_of_the_child
+
+Primary key: Household_typesID
+
+**2.** hgpID_budget with 52 records: househod_types-groups_types (hgpID) with their corresponding budget per year and the amount of money paid out per day and year Field Names: hgpID, household_types,group_types,household_types_definition, group_types_definition,household_types_budget_per_year,number_of_groups, number_of_persons, maximum_budget_per_day,maximum_budget_per_year, Year
+
+Primary key: hgpID
+
+**3.** Table_15_Transport_Type_costs (3 records)
+
+Field Names:transport_type_ID, transport_type_definition maximum_of_total_time wait_time_per_full_travel minimum_distance_used maximum_distance_used speed_of_transport_type fixed_costs_per_transport_type per_km_costs_per_transport_type per_person_costs_per_transport_type per_km_en_per_person_costs_per_transport_type
+
+Primary key: transport_type_ID
+
+**4.** hgpID_transportID 124 records of combination hgpID and transportID Field Names: hgpID, transportID
+
+Primary key: hgpID
+
+Secondary key: transportID
+
+**5.** Table_5_activities_definition_costs' Activities pattern definitions and costs per activity 10 records Field Names: activity_pattern, activity_pattern_definition, fixed_costs_per_activity, costs_per_hour_per_activity, costs_per_person_per_activity,costs_per_hour_and_person_per_activity
+
+Primary key:activity_pattern
+
+**6.** Table_2_RecrID_type_coordinates Recreation area definitions. 33 records Field Names: RecrID, recreation_area, Latitude_in_degrees,Longitude_in_degrees, type_of_recreation_areas,type_of_recreation_areas_definition, price_of_sights_or_park_per_child, price_of_parking
+
+Primary key: RecrID
+
+**7.** zip_code_coordinates'. The zip codes coordinates 9 records Field Names: zip_code, Latitude, Longitude
+
+Primary key: zip_code
+
+**8.** Table_3_RecrID_type_activity_pattern' Type of activities per recreation area 221 records Field Names: RecrID, activity_pattern, recreation_areas,type_of_recreation_areas, type_of_recreation_areas_definition
+
+Primary key: RecrID
+
+9\. Table7_zip_hgpID_budget' 468 records with 12 variables
+
+Field Names: zip_code,hgpID,ID_origin_area,household_types,household_types_definition,group_types,group_types_definition,number_of_adults,number_of_children, number_of_persons, dog,number_of_groups
+
+Primary key:hgpID
+
+**10.** Table_9_zip_code_RecrID_distances' Combinations of zip codes, recreation areas and their corresponding transport types distances (in km) from zip codes to recreation areas, transport travel time in sec and transport speed inkm/hour. 891 records Field Names: ID_origin_area, RecrID, transport_type_ID, zip_code, recreation_areas, distances_km, transport_travel_time_sec, transport_speed_km_per_hour
+
+Primary key: ID_origin_area
+
+**11.** Table_10_hgpID_activity_time'. Combinations of household_types, group_types with their corresponding activity pattern, the minimum and maximum number of times per activity and finaly the minimum and maximum amount of time to spend per activity. 260 records Field Names: hgpID, activity_pattern, activity_pattern, household_types, household_types_definition, group_types, group_types_definition, minimum_number_of_times_per_activity, maximum_number_of_times_per_activity, to_spend_minimum_time_per_activity, to_spend_maximum_time_per_activity
+
+Primary key: hgpID
+
+**12.** 'Time_segment_selected. 4 time segments are chosen with their corresponding time available per segment (in min) and the number of visits per time segment 80 records' Field Names: RecrID, Time_segment, number_available_per_time_segment,Time_available_per_time_segment
+
+Primary key: RecrID
+
+**13.** Table_14_hgpID_groups_types'. Houshold_types with their corresponding groups_types (recreation person(s) with or without a dog) 52 records' Field Names: hgpID, household_types, household_types_definition, group_types, group_types_definition, number_of_adults, age_of_adults, number_of_children, age_of_the_child, dog, number_of_groups, number_of_persons
+
+Primary key: hgpID
+
+14\. Table 16 hgpID with min_max_budgets. Number of records 52
+
+Field Names:
+
+hgpID,household_types,household_types_definition,group_types,group_types_definition, number_of_children, number_of_persons, household_types_budget_per_year, maximum_budget_per_day, maximum_budget_per_year,Year
+
+Primary key: hgpID
+
+\newpage
+
+------------------------------------------------------------------------
+
+# Appendix B
+
+**Required Libraries**
+
+**1.** library(rJava) Low-level interface to Java VM very much like .C/.Call and friends. Allows creation of objects, calling methods and accessing fields.
+
+**2.** library(dplyr) When working with data you must: Figure out what you want to do. Describe those tasks in the form of a computer program. Execute the program. The dplyr package makes these steps fast and easy: By constraining your options, it helps you think about your data manipulation challenges. It provides simple "verbs", functions that correspond to the most common data manipulation tasks, to help you translate your thoughts into code. It uses efficient backends, so you spend less time waiting for the computer. This document introduces you to dplyr's basic set of tools, and shows you how to apply them to data frames. dplyr also supports databases via the dbplyr package, once you've installed, read vignette("dbplyr") to learn more.
+
+**3.** library(dbplyr) To use databases with dplyr you need to first install dbplyr You'll also need to install a DBI backend package. The DBI package provides a common interface that allows dplyr to work with many different databases using the same code. DBI is automatically installed with dbplyr, but you need to install a specific backend for the database that you want to connect to. Five commonly used backends are: RMySQL connects to MySQL and MariaDB RPostgreSQL connects to Postgres and Redshift. RSQLite embeds a SQLite database. odbc connects to many commercial databases via the open database connectivity protocol. bigrquery connects to Google's BigQuery.
+
+**4.** library(sqldf) Provides an easy way to perform SQL selects on R data frames.
+
+**5.** library(DBI) A common interface between the **S** language (in its R and S-Plus implementations) and database management systems (DBMS). The interface defines a small set of classes and methods similar in spirit to Perl's DBI, Java's JDBC, Python's DB-API, and Microsoft's ODBC.
+
+**6.** library(RSQLite) RSQLite is the easiest way to use a database from R because the package itself contains [SQLite](https://www.sqlite.org); no external software is needed.RSQLite is a DBI-compatible interface which means you primarily use functions defined in the DBI package, so you should always start by loading DBI, not RSQLite
+
+**7.** library(pracma) This package provides R implementations of more advanced functions in numerical analysis, with a special view on on optimization and time series routines. Uses Matlab/Octave function names where appropriate to simplify porting.
+
+**8.** library(reshape2)
+
+**9.** library(ggplot2)
+
+**10.** library(quadprog) This routine implements the dual method of Goldfarb and Idnani (1982, 1983) for solving quadratic programming problems of the form min(-d\^T b + 1/2 b\^T D b) with the constraints A\^T b \>= b_0.
+
+**11.** library(intpoint) This function solves a linear programming problem using a modification of Karmarkar's linear programming algorithm, developed by Vanderbei, Meketon and Freedman (1986). This algorithm uses a recentered projected gradient approach without a priori knowledge of the optimal objective function value.
+
+**12.** library(rpivotTable) The rpivotTable package is an R htmlwidget built around the pivottable library.PivotTable.js is a Javascript Pivot Table visualization library with drag'n'drop functionality built on top of jQuery / jQueryUI and written in CoffeeScript (then compiled to JavaScript) by Nicolas Kruchten at Datacratic. It is available under a MIT license
+
+**13.** library(devtools) Package development tools for R.
+
+**14.** library(roxygen2) In-Line Documentation for R
+
+See also:
+
+* Databases in R: <https://CRAN.R-project.org/package=dbplyr> and <https://CRAN.R-project.org/package=RSQLite>
+* Data manipulation and summaries: <https://CRAN.R-project.org/package=dplyr>
+* Optimization in R: <https://CRAN.R-project.org/package=quadprog>
+* R Package Development: <https://CRAN.R-project.org/doc/contrib/Leisch-CreatingPackages.pdf> and <https://r-pkgs.org>
+
+\newpage
+
+------------------------------------------------------------------------
+
+# Appendix C
+
+**Example how to use quadprog package in R**
+
+Example how to use the quadprog (solve.QP) package
+
+minimize $$z = x_1- 2 * x_2  + 4 * x_3  + x_1^2  + 2 * x_2^2  + 3 * x_3^2  + x_1 * x_3$$ subject to: $$\begin{aligned}
+-3 * x_1 + 4 * x_2 - 2 * x_3 \le 10 && \text{(ineq.(N.B.you need to turn it into "greater-equal"form))} \\
+-3 * x_1 + 2 * x_2 + x_3 \ge 2 && \text{(inequalities)}\\
+2 * x_1 + 3* x_2 + 4* x_3 = 5  && \text{(equalities)} \\
+0 \le x_1 \le 5 && \text{(bounds)} \\
+1 \le x_2  \le 5 && \text{(bounds)} \\
+0 \le x_3  \le 5 && \text{(bounds)}
+\end {aligned}$$ construction of the Hessian matrix: is a square matrix of second-order partial derivatives.
+
+$$H = \begin{pmatrix}
+\frac{\partial^{2}z}{\partial x_1^{2}} & \frac{\partial^{2}z}{\partial x_1\partial x_2} & \frac{\partial^{2}z}{\partial x_1\partial x_3} \\
+\frac{\partial^{2}z}{\partial x_2\partial x_1} & \frac{\partial^{2}z}{\partial x_2^{2}} & \frac{\partial^{2}z}{\partial x_2\partial x_3} \\ 
+\frac{\partial^{2}z}{\partial x_3\partial x_1} & \frac{\partial^{2}z}{\partial x_3\partial x_2} & \frac{\partial^{2}z}{\partial x_3^{2}}
+\end{pmatrix}$$
+
+H \<- rbind(c(2,0,1),c(0,4,0),c(1,0,6))
+
+$$H = \begin{pmatrix}
+2 & 0 & 1 \\
+0 & 4 & 0 \\ 
+1 & 0 &6 
+\end{pmatrix}$$
+
+Dmat \<- H
+
+$$Dmat = \begin{pmatrix}
+2 & 0 & 1 \\
+0 & 4 & 0 \\ 
+1 & 0 &6 
+\end{pmatrix}$$
+
+$$dvec = \begin{pmatrix}
+-1 & 2 & -4
+\end{pmatrix}$$
+
+**equalities**
+
+A.eq \<- rbind(c(2,3,4))
+
+$$A.eq = \begin{pmatrix}
+2 & 3 & 4
+\end{pmatrix}$$
+
+b.eq \<- (5)
+
+$$b.eq = \begin{pmatrix}
+5
+\end{pmatrix}$$
+
+**inequalities**
+
+A.ge \<- rbind(c(-3,-4,2),c(-3,2,1))
+
+$$A.ge = \begin{pmatrix}
+-3 & -4 & 2 \\
+-3 & 2 & 1
+\end{pmatrix}$$
+
+b.ge \<- rbind(c(-10),c(2))
+
+$$b.ge = \begin{pmatrix}
+-10 \\
+-2
+\end{pmatrix}$$
+
+**lower bounds**
+
+A.lbs \<- rbind(c(1,0,0),c(0,1,0),c(0,0,1))
+
+$$A.lbs = \begin{pmatrix}
+1 & 0 & 0 \\
+0 & 1 & 0 \\
+0 & 0 & 1
+\end{pmatrix}$$
+
+b.lbs \<- c(0,1,0)
+
+$$b.lbs = \begin{pmatrix}
+0 & 1 & 0
+\end{pmatrix}$$
+
+**upper bounds**
+
+A.ubs \<- rbind(c(-1,0,0),c(0,-1,0),c(0,0,-1))
+
+$$A.ubs = \begin{pmatrix}
+-1 & 0 & 0 \\
+0 & -1 & 0 \\
+0 & 0 & -1
+\end{pmatrix}$$
+
+b.ubs \<- c(-5,-5,-5)
+
+$$b.ubs = \begin{pmatrix}
+-5 & -5 & -5
+\end{pmatrix}$$
+
+Amat \<- rbind(A.eq,A.ge,A.lbs,A.ubs)
+
+$$Amat = \begin{pmatrix}
+2 & 3 & 4 \\
+-3 & -4 & 2 \\ 
+-3 & 2 & 1 \\
+1 & 0 & 0 \\
+0 & 1 & 0 \\
+0 & 0 & 1 \\
+-1 & 0 & 0 \\
+0 & -1 & 0 \\
+0 & 0 & -1 
+\end{pmatrix}$$
+
+\begin{align}
+ Amat <- t(Amat) && \text{t = transpose}
+ \end {align}
+
+$$Amat = \begin{pmatrix}
+2   & -3 & -3 & 1   & 0 &   0 & -1 &    0   & 0 \\
+3   & -4 &  2 & 0 & 1 & 0 & 0 & -1 &    0 \\
+4 & 2 & 1 & 0 & 0 & 1 & 0 & 0 & -1
+\end{pmatrix}$$
+
+bvec \<- c(b.eq, b.ge, b.lbs, b.ubs)
+
+$$bvec = \begin{pmatrix}
+5 & -10 &   2 &   0 &   1 &   0 &  -5 &  -5 &  -5
+\end{pmatrix}$$
+
+meq \<- 1
+
+sol \<- solve.QP(Dmat,dvec,Amat,bvec,meq)
+
+sol\$solution
+
+sol\$solution [1] 0.29045402 1.41327125 0.04481956
+
+sol\$value
+
+sol\$value [1] 1.741269
+
+sol\$unconstrained.solution
+
+sol\$unconstrained.solution [1] -0.1818182 0.5000000 -0.6363636

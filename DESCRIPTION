@@ -1,0 +1,35 @@
+Package: ACRER
+Type: Package
+Title: Accessibility for Recreation in R
+Version: 1.0.1
+Date: 2026-09-21
+Authors@R: c(
+    person("Georgios", "Martakis", email = "georgios.martakis@gmail.com", role = c("aut", "cre")),
+    person("Jan", "Bervaes", role = "ctb", comment = "deceased"),
+    person("Bert", "van der Werf", role = "ctb", comment = c(ORCID = "0000-0003-3072-5937"))
+  )
+Description: Recreation model that simulates household types, group types,
+    expected visiting duration, and total visits from city zip codes to
+    surrounding destination areas. The methodology is based on the accessibility
+    model described in Bervaes et al. (1996) "Een model voor het gebruik van
+    de groene ruimte in stadslandschappen (Fase I)" <https://www.wur.nl/en/library>,
+    with optimization procedures based on Goldfarb and Idnani (1983)
+    <doi:10.1007/BF02591962> and Vanderbei et al. (1986)
+    <doi:10.1007/BF01840454>.
+Depends: R (>= 3.5.0)
+License: GPL (>= 3)
+Encoding: UTF-8
+Imports: DBI, data.table, dplyr, knitr, pivottabler, magrittr,
+        quadprog, reshape2, RSQLite, sf, sqldf, tibble, pracma
+Suggests: testthat (>= 3.0.0), rmarkdown, curl, DT, mapview, WriteXLS,
+        flextable, ggmap, htmltools, htmlwidgets, kableExtra, openxlsx,
+        pander, rstudioapi, svDialogs
+VignetteBuilder: knitr
+NeedsCompilation: no
+Config/roxygen2/version: 8.1.0
+Packaged: 2026-09-21 13:39:55 UTC; georgiosmartakis
+Author: Georgios Martakis [aut, cre],
+  Jan Bervaes [ctb] (deceased),
+  Bert van der Werf [ctb] (ORCID:
+    <https://orcid.org/0000-0003-3072-5937>)
+Maintainer: Georgios Martakis <georgios.martakis@gmail.com>
